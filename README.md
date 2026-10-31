@@ -1,8 +1,37 @@
 # Claim Check
 
+[![CI](https://github.com/banjonay1992/claim-check/actions/workflows/ci.yml/badge.svg)](https://github.com/banjonay1992/claim-check/actions/workflows/ci.yml)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+
 Claim Check tests whether a project's README and other Markdown docs are still telling the truth.
 
 Docs make claims about the code around them. This file lives here. Run this script to build. Set this environment variable before starting. This endpoint returns a user. Every one of those claims can quietly stop being true when the code changes and nobody remembers to update the docs. Claim Check reads the claims, checks each one against the project, and reports "doc drift" the way a test suite reports failures: with a file, a line number, a reason and a non-zero exit code.
+
+**Status:** version 0.1.0, the first release. It runs on every push in this repository's own CI, where it checks this README, the roadmap and the contributing guide (runnable blocks included), and it ships as a GitHub Action. It is not on npm yet. The [roadmap](ROADMAP.md) and the [issues](https://github.com/banjonay1992/claim-check/issues) show what comes next.
+
+<img src="docs/screenshots/drift-scripts.png" width="760" alt="Claim Check run on a sample project whose README mentions npm scripts and make targets that no longer exist. It lists five errors with line numbers, suggests build for the typo biuld, and exits with code 1.">
+
+The screenshots in this README are real runs of the command-line tool against the sample projects in `test/fixtures/` and against this repository.
+
+## Quick start
+
+Claim Check needs Node.js 22.12 or newer. It is not published to npm yet, so for now run it from a clone of this repository:
+
+```sh
+git clone https://github.com/banjonay1992/claim-check.git
+cd claim-check
+npm ci
+npm run build
+node dist/cli.js path/to/your/project
+```
+
+To see it find drift straight away, point it at one of the sample projects:
+
+```sh
+node dist/cli.js test/fixtures/env/drifted
+```
+
+Running `npm link` in the clone puts a `claim-check` command on your path. Once a release is published, `npm install --save-dev claim-check` will do the same per project. To run it in GitHub Actions, see [Using it in CI](#using-it-in-ci).
 
 ## Who it is for
 
@@ -19,6 +48,23 @@ It is for people who maintain a project with a README that other people rely on:
 | `endpoints` | HTTP routes documented as a method and path are defined somewhere in the source. |
 | `commands` | Shell blocks you mark as runnable exit with the expected code. These are only listed unless you pass `--run`. |
 
+<details>
+<summary>More screenshots</summary>
+
+Environment variables that are documented but no longer read, or read but never documented:
+
+<img src="docs/screenshots/drift-env.png" width="760" alt="Claim Check run on a sample project with an env drift: one warning for an unused variable in .env.example and three errors for stale and undocumented variables. Exit code 1.">
+
+Missing files, a wrongly cased link and a missing image:
+
+<img src="docs/screenshots/drift-paths.png" width="760" alt="Claim Check run on a sample project with six missing or wrongly cased paths. Exit code 1.">
+
+A project whose docs match:
+
+<img src="docs/screenshots/pass-scripts.png" width="640" alt="Claim Check run on a sample project where all eleven script claims pass. Exit code 0.">
+
+</details>
+
 ## Built with
 
 - TypeScript on Node.js 22 or newer, compiled with `tsc`
@@ -28,18 +74,6 @@ It is for people who maintain a project with a README that other people rely on:
 - [Vitest](https://vitest.dev) for the test suite
 
 There are no other runtime dependencies. Claim Check does not touch the network unless you pass `--external`.
-
-## Install
-
-Claim Check is not published to npm yet. To use it from a clone of this repository:
-
-```sh
-npm ci
-npm run build
-node dist/cli.js path/to/your/project
-```
-
-Running `npm link` in the clone puts a `claim-check` command on your path. Once a release is published, `npm install --save-dev claim-check` will do the same per project.
 
 ## Usage
 
@@ -66,7 +100,7 @@ The directory defaults to the current one. Useful options:
 
 The exit code is 0 when the docs match the project, 1 when drift was found, and 2 for a usage or configuration problem (an unknown option, a broken config file, or a directory with no Markdown files).
 
-Here is the human report for a sample project whose README has fallen behind its `package.json` and Makefile:
+Here is the human report for `test/fixtures/scripts/drifted`, a sample project whose README has fallen behind its `package.json` and Makefiles:
 
 ```text
 README.md
@@ -74,17 +108,18 @@ README.md
   3:45  error    Script "biuld" is not defined in package.json  scripts
                  Did you mean "build"?
   6     error    Make target "release" is not defined in Makefile  scripts
+  7     error    Make target "nope" is not defined in tools/Makefile  scripts
   8     error    Script "dev" is not defined in web/package.json  scripts
 
 Checks
   paths      pass  0 claims
   links      pass  0 claims
-  scripts    fail  4 claims, 4 errors
+  scripts    fail  5 claims, 5 errors
   env        pass  0 claims
   endpoints  pass  0 claims
   commands   pass  0 claims
 
-Doc drift found. 4 errors, 0 warnings across 4 claims in 1 document (32ms)
+Doc drift found. 5 errors, 0 warnings across 5 claims in 1 document (28ms)
 ```
 
 By default every `.md` and `.markdown` file in the project is checked, except anything under `node_modules`, `.git`, common build output folders (such as `dist`, `build` and `coverage`) and changelogs, which describe history rather than the present.
@@ -228,7 +263,53 @@ Unknown settings and wrong types are rejected with a message that names the sett
 
 ## Using it in CI
 
-Claim Check exits with 1 when it finds drift, so adding it as a step is enough to fail a build. This GitHub Actions workflow runs it on every push and pull request, and uploads a SARIF report so findings appear as annotations in GitHub code scanning:
+Claim Check exits with 1 when it finds drift, so adding it as a step is enough to fail a build.
+
+### With the GitHub Action
+
+This repository is also a composite GitHub Action. It builds Claim Check, prints the report to the log, marks each error and warning as an annotation on the file and line, writes a short table to the job summary page and writes a SARIF file:
+
+```yaml
+name: Docs
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  claim-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: banjonay1992/claim-check@v0
+```
+
+The `v0` tag follows the latest 0.x release. The repository is private for now, so other repositories can only use the action once it is public.
+
+| Input | Default | Meaning |
+| --- | --- | --- |
+| `path` | `.` | Project folder to check. |
+| `args` | none | Extra options separated by spaces, such as `--run --only paths,links`. The action sets the report format itself. |
+| `sarif` | `claim-check.sarif` | Where to write the SARIF report. An empty string skips it. |
+| `annotations` | `true` | Annotate errors and warnings on the files they belong to. |
+| `summary` | `true` | Write a table of results to the job summary page. |
+| `fail` | `true` | Fail the step when drift is found. |
+| `node-version` | `22` | Node.js version to set up. An empty string uses the runner's own Node.js. |
+
+The outputs are `exit-code`, `errors`, `warnings` and `sarif-file`. To see findings in GitHub code scanning, add `security-events: write` to the permissions and upload the SARIF file after the action:
+
+```yaml
+      - uses: banjonay1992/claim-check@v0
+        with:
+          fail: false
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: claim-check.sarif
+```
+
+### With plain steps
+
+Once Claim Check is on npm, any CI system can run it with `npx`. This GitHub Actions workflow does the same as the action with plain steps, and uploads a SARIF report for code scanning:
 
 ```yaml
 name: Docs
@@ -259,7 +340,15 @@ jobs:
 
 If your CI shows test reports, `--format junit` produces one test suite per check. Plain `npx claim-check` in a step prints the human report to the log.
 
-This repository checks itself the same way: `npm run self-check` builds the tool and runs it against this README and the other docs, and CI runs it with `--run`.
+### Claim Check on its own repository
+
+This repository is the first project Claim Check is used on. On every push and pull request, [CI](.github/workflows/ci.yml) does three things with it:
+
+- `npm run self-check -- --run` builds the tool and checks this README, the roadmap and the contributing guide on Node.js 22 and 24, including the runnable block in the [Commands](#commands) section. A broken link or a renamed script fails the build.
+- It uploads the same check as a JUnit report.
+- It runs the GitHub Action on this repository, and on the drifted scripts sample to prove the action reports drift.
+
+<img src="docs/screenshots/self-check.png" width="640" alt="Claim Check run on its own repository with --run. All six checks pass and it exits with code 0.">
 
 ## Programmatic use
 
