@@ -21,6 +21,8 @@ export interface LinksConfig {
   /** Cache file for external URL results, relative to the project root. null disables caching. */
   cacheFile: string | null;
   cacheTtlHours: number;
+  /** Hosts that are never fetched, such as localhost and the reserved example domains. */
+  skipHosts: string[];
 }
 
 export interface CommandsConfig {
@@ -105,6 +107,7 @@ export function defaultConfig(): Config {
       ignore: [],
       cacheFile: '.claim-check-cache.json',
       cacheTtlHours: 24,
+      skipHosts: ['localhost', '127.0.0.1', '0.0.0.0', '[::1]', 'example.com', 'example.org', 'example.net'],
     },
     commands: {
       timeoutMs: 60_000,
@@ -208,6 +211,7 @@ const ROOT_SHAPE: Record<string, Validator> = {
     ignore: stringArray,
     cacheFile: nullableString,
     cacheTtlHours: positiveNumber,
+    skipHosts: stringArray,
   }),
   commands: section({
     timeoutMs: positiveNumber,
