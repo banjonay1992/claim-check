@@ -13,7 +13,7 @@ const KNOWN_EXTENSIONS = new Set([
   'xml', 'csv', 'tsv', 'html', 'htm', 'css', 'scss', 'sass', 'less', 'js', 'mjs', 'cjs', 'jsx', 'ts', 'mts',
   'cts', 'tsx', 'vue', 'svelte', 'astro', 'py', 'pyi', 'rb', 'go', 'rs', 'java', 'kt', 'kts', 'swift', 'c',
   'h', 'cc', 'cpp', 'hpp', 'cs', 'php', 'sh', 'bash', 'zsh', 'ps1', 'sql', 'graphql', 'gql', 'proto', 'lock',
-  'env', 'example', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'ico', 'pdf', 'ipynb', 'gradle', 'xcconfig',
+  'example', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'ico', 'pdf', 'ipynb', 'gradle', 'xcconfig',
   'plist', 'entitlements', 'storyboard', 'xib', 'pbxproj', 'dart', 'ex', 'exs', 'erl', 'lua', 'r', 'jl',
   'tf', 'hcl', 'nix', 'cmake', 'mk',
 ]);
@@ -69,6 +69,8 @@ export function classifyPath(raw: string): PathKind | null {
 
   if (segments.length === 1) {
     if (!looksLikeFile) return null;
+    // ".md" or ".ts" on its own names a file type, not a dotfile.
+    if (last.startsWith('.') && KNOWN_EXTENSIONS.has(last.slice(1).toLowerCase())) return null;
     // Product names such as Node.js or Vue.js are not files.
     if (/^[A-Z][A-Za-z0-9]*\.js$/.test(last)) return null;
     // Version-like strings such as v1.2.ts are unlikely; plain numbers too.

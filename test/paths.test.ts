@@ -12,6 +12,8 @@ describe('classifyPath', () => {
     ['package.json', 'bare'],
     ['Makefile', 'bare'],
     ['.env.example', 'bare'],
+    ['.nvmrc', 'bare'],
+    ['.gitignore', 'bare'],
     ['src/components', 'soft'],
   ] as const)('treats %s as %s', (value, kind) => {
     expect(classifyPath(value)).toBe(kind);
@@ -35,6 +37,11 @@ describe('classifyPath', () => {
     'useState',
     'a | b',
     '*.md',
+    '.md',
+    '.markdown',
+    'process.env',
+    'import.meta.env',
+    'Bun.env',
   ])('does not treat %s as a path', (value) => {
     expect(classifyPath(value)).toBeNull();
   });
