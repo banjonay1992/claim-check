@@ -21,3 +21,6 @@ First release.
 - Human, JSON, JUnit and SARIF reporters.
 - `claimcheck.config.json` with validation and clear errors.
 - Fixture projects and tests for every check, CI on GitHub Actions, and a self-check of this repository's docs.
+- A composite GitHub Action (`action.yml`) that runs Claim Check, annotates findings, writes a job summary and a SARIF file. CI runs it on this repository and on a drifted sample.
+- A release workflow that publishes to npm with trusted publishing and provenance, switched off until the `NPM_PUBLISH` repository variable is set.
+- Package metadata for npm, and screenshots of real runs in the README.
