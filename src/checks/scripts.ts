@@ -272,7 +272,7 @@ export const scriptsCheck: Check = {
           : project.findUp(startDir, ['package.json']);
         const scripts = pkgFile ? readScripts(pkgFile) : null;
         if (!pkgFile || scripts === null) {
-          findings.push({ ...base, severity: 'error', message: `"${mention.runner} run ${label}" is documented but no package.json was found` });
+          findings.push({ ...base, severity: 'error', message: `Script "${label}" is documented but no package.json was found` });
           continue;
         }
         if (scripts === 'invalid') {

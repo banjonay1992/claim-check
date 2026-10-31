@@ -1,0 +1,21 @@
+{
+  "docs": [
+    "README.md"
+  ],
+  "ignore": [
+    "legacy"
+  ],
+  "paths": {
+    "ignore": [
+      "generated/**"
+    ]
+  },
+  "scripts": {
+    "ignore": [
+      "deploy"
+    ]
+  },
+  "skip": [
+    "endpoints"
+  ]
+}

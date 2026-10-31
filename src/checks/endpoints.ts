@@ -106,7 +106,7 @@ const ROUTE_PATTERNS: RoutePattern[] = [
     path: (m) => m[1],
   },
   // Express: router.route('/x').get(...)
-  { re: /\.route\(\s*['"`](\/[^'"`]*)['"`]\s*\)/g, method: () => ['ANY'], path: (m) => m[1] },
+  { re: /(?<!@[\w.]*)\.route\(\s*['"`](\/[^'"`]*)['"`]\s*\)/g, method: () => ['ANY'], path: (m) => m[1] },
   // Spring: @GetMapping("/x"), @PostMapping(path = "/x")
   {
     re: /@(Get|Post|Put|Patch|Delete)Mapping\(\s*(?:(?:value|path)\s*=\s*)?\{?\s*["'](\/[^"']*)["']/g,
@@ -155,11 +155,18 @@ export function findRoutes(source: string, file: string): { routes: Route[]; pre
   const index = new LineIndex(source);
   const routes: Route[] = [];
   const prefixes: string[] = [];
+  const seen = new Set<string>();
   for (const pattern of ROUTE_PATTERNS) {
     for (const m of source.matchAll(pattern.re)) {
       const path = pattern.path(m);
       if (!path || m.index === undefined) continue;
-      for (const method of pattern.method(m)) routes.push({ method, path, file, line: index.lineAt(m.index) });
+      const line = index.lineAt(m.index);
+      for (const method of pattern.method(m)) {
+        const key = `${method} ${path} ${line}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        routes.push({ method, path, file, line });
+      }
     }
   }
   for (const re of MOUNT_PATTERNS) {

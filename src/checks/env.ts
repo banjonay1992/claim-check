@@ -188,6 +188,24 @@ export const envCheck: Check = {
       }
     }
 
+    const stale = severityFor(config.env.stale);
+    const unusedExample = severityFor(config.env.unusedExample);
+    // Stale and unused checks need some evidence that source code was scanned at all.
+    const sourceScanned = reads.size > 0;
+
+    let corpus: string | null = null;
+    const appearsInSource = (name: string): boolean => {
+      if (reads.has(name)) return true;
+      if (corpus === null) {
+        corpus = project
+          .listFiles()
+          .filter((f) => isLooseSource(f) && !config.env.exampleFiles.includes(posix.basename(f)))
+          .map((f) => project.readText(f) ?? '')
+          .join('\n');
+      }
+      return new RegExp(`\\b${name}\\b`).test(corpus);
+    };
+
     // Undocumented: read in code or listed in an example file, but never mentioned in the docs.
     const undocumented = severityFor(config.env.undocumented);
     const required = new Map<string, EnvReference>([...examples, ...reads]);
@@ -196,35 +214,20 @@ export const envCheck: Check = {
       if (ignore(name)) continue;
       checked++;
       if (documented.has(name) || !undocumented) continue;
-      const source = reads.has(name) ? 'read in code' : `listed in ${ref.file}`;
+      const fromCode = reads.has(name);
+      // An example entry that nothing uses is reported once, as unused, below.
+      if (!fromCode && sourceScanned && unusedExample && !appearsInSource(name)) continue;
       findings.push({
         check: 'env',
         severity: undocumented,
         file: ref.file,
         line: ref.line,
         claim: name,
-        message: `${name} is ${source} but not documented in any Markdown file`,
+        message: `${name} is ${fromCode ? 'read in code' : `listed in ${ref.file}`} but not documented in any Markdown file`,
       });
     }
 
-    // Stale and unused checks need some evidence that source code was scanned at all.
-    const stale = severityFor(config.env.stale);
-    const unusedExample = severityFor(config.env.unusedExample);
-    if (reads.size === 0) return { checked, findings };
-
-    let corpus: string | null = null;
-    const appearsInSource = (name: string): boolean => {
-      if (reads.has(name)) return true;
-      if (corpus === null) {
-        corpus = project
-          .listFiles()
-          .filter((f) => isLooseSource(f) && project.isIgnored(f) === false)
-          .filter((f) => !config.env.exampleFiles.includes(posix.basename(f)))
-          .map((f) => project.readText(f) ?? '')
-          .join('\n');
-      }
-      return new RegExp(`\\b${name}\\b`).test(corpus);
-    };
+    if (!sourceScanned) return { checked, findings };
 
     for (const [name, uses] of documented) {
       if (ignore(name) || required.has(name)) continue;

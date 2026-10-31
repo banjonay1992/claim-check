@@ -52,7 +52,7 @@ export function closest(input: string, candidates: Iterable<string>, maxDistance
       bestScore = score;
     }
   }
-  const limit = Math.min(maxDistance, Math.max(1, Math.floor(input.length / 3)));
+  const limit = Math.min(maxDistance, Math.max(2, Math.ceil(input.length / 3)));
   return bestScore <= limit ? best : null;
 }
 
