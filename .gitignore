@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+.claim-check-cache.json
+*.sarif
+claim-check-report.*

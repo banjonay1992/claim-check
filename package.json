@@ -1,0 +1,62 @@
+{
+  "name": "claim-check",
+  "version": "0.1.0",
+  "description": "Test whether your README and Markdown docs still tell the truth about your project.",
+  "type": "module",
+  "bin": {
+    "claim-check": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "self-check": "npm run build && node dist/cli.js .",
+    "self-check:run": "npm run build && node dist/cli.js . --run",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "documentation",
+    "readme",
+    "markdown",
+    "lint",
+    "docs-as-code",
+    "ci"
+  ],
+  "author": "Nathan Cole (NAY Productions)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "dependencies": {
+    "github-slugger": "^2.0.0",
+    "mdast-util-from-markdown": "^2.1.0",
+    "mdast-util-frontmatter": "^2.0.1",
+    "mdast-util-gfm": "^3.1.0",
+    "mdast-util-to-string": "^4.0.0",
+    "micromark-extension-frontmatter": "^2.0.0",
+    "micromark-extension-gfm": "^3.0.0",
+    "picomatch": "^4.0.7"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^22.20.5",
+    "@types/picomatch": "^4.0.3",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
