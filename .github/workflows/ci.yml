@@ -51,3 +51,40 @@ jobs:
           name: claim-check-report-node-${{ matrix.node }}
           path: claim-check-report.xml
           if-no-files-found: ignore
+
+  action:
+    name: GitHub Action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Claim Check on this repository, through the action
+        uses: ./
+        with:
+          args: --run
+          sarif: claim-check.sarif
+
+      - name: Upload SARIF report
+        uses: actions/upload-artifact@v4
+        with:
+          name: claim-check-sarif
+          path: claim-check.sarif
+
+      - name: Claim Check on a drifted fixture (must find drift)
+        id: drifted
+        uses: ./
+        with:
+          path: test/fixtures/scripts/drifted
+          sarif: ''
+          annotations: 'false'
+          summary: 'false'
+          fail: 'false'
+
+      - name: Check the action reported the drift
+        env:
+          EXIT_CODE: ${{ steps.drifted.outputs.exit-code }}
+          ERRORS: ${{ steps.drifted.outputs.errors }}
+        run: |
+          echo "exit code $EXIT_CODE, $ERRORS errors"
+          test "$EXIT_CODE" = 1
+          test "$ERRORS" -gt 0

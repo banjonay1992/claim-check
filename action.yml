@@ -1,0 +1,97 @@
+name: Claim Check
+description: Test whether your README and Markdown docs still tell the truth about your project.
+author: Nathan Cole (NAY Productions)
+branding:
+  icon: check-square
+  color: green
+
+inputs:
+  path:
+    description: Project folder to check, relative to the workspace.
+    required: false
+    default: .
+  args:
+    description: >-
+      Extra command-line options, separated by spaces, for example "--run --only paths,links".
+      Do not pass --format, --json or --output here; the action sets those itself.
+    required: false
+    default: ''
+  sarif:
+    description: File to write a SARIF report to, relative to the workspace. Set to an empty string to skip it.
+    required: false
+    default: claim-check.sarif
+  annotations:
+    description: Show each finding as an annotation on the changed file ("true" or "false").
+    required: false
+    default: 'true'
+  summary:
+    description: Write a short report to the job summary page ("true" or "false").
+    required: false
+    default: 'true'
+  fail:
+    description: Fail the step when doc drift is found ("true" or "false").
+    required: false
+    default: 'true'
+  node-version:
+    description: Node.js version to set up. Set to an empty string to use the Node.js already on the runner (22.12 or newer).
+    required: false
+    default: '22'
+
+outputs:
+  exit-code:
+    description: Claim Check's exit code. 0 means the docs match, 1 means drift was found, 2 means a usage or configuration error.
+    value: ${{ steps.run.outputs.exit-code }}
+  errors:
+    description: Number of errors found.
+    value: ${{ steps.run.outputs.errors }}
+  warnings:
+    description: Number of warnings found.
+    value: ${{ steps.run.outputs.warnings }}
+  sarif-file:
+    description: Path of the SARIF report, if one was written.
+    value: ${{ steps.run.outputs.sarif-file }}
+
+runs:
+  using: composite
+  steps:
+    - if: inputs.node-version != ''
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Build Claim Check
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        if [ -f dist/cli.js ] && [ -d node_modules ]; then
+          echo "Claim Check is already built in this job."
+        else
+          npm ci --no-audit --no-fund --loglevel=error
+          npm run build --silent
+        fi
+
+    - name: Run Claim Check
+      id: run
+      shell: bash
+      env:
+        CC_PATH: ${{ inputs.path }}
+        CC_ARGS: ${{ inputs.args }}
+        CC_SARIF: ${{ inputs.sarif }}
+        CC_ANNOTATIONS: ${{ inputs.annotations }}
+        CC_SUMMARY: ${{ inputs.summary }}
+        CC_FAIL: ${{ inputs.fail }}
+      run: |
+        read -r -a extra <<< "$CC_ARGS"
+        json="$RUNNER_TEMP/claim-check-$GITHUB_RUN_ID-$GITHUB_JOB.json"
+        rm -f "$json"
+        status=0
+        node "$GITHUB_ACTION_PATH/dist/cli.js" "$CC_PATH" "${extra[@]}" --format json --output "$json" || status=$?
+        echo "exit-code=$status" >> "$GITHUB_OUTPUT"
+        if [ "$status" -ge 2 ] || [ ! -f "$json" ]; then
+          echo "::error title=Claim Check::Claim Check could not run (exit code $status). See the log above."
+          exit "$status"
+        fi
+        node "$GITHUB_ACTION_PATH/action/report.mjs" "$json"
+        if [ "$status" -ne 0 ] && [ "$CC_FAIL" = "true" ]; then
+          exit "$status"
+        fi
