@@ -2,6 +2,29 @@
   "name": "claim-check",
   "version": "0.1.0",
   "description": "Test whether your README and Markdown docs still tell the truth about your project.",
+  "keywords": [
+    "documentation",
+    "readme",
+    "markdown",
+    "docs-as-code",
+    "doc-drift",
+    "linter",
+    "lint",
+    "cli",
+    "ci",
+    "github-action",
+    "developer-tools"
+  ],
+  "homepage": "https://github.com/banjonay1992/claim-check#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/banjonay1992/claim-check.git"
+  },
+  "bugs": {
+    "url": "https://github.com/banjonay1992/claim-check/issues"
+  },
+  "author": "Nathan Cole (NAY Productions)",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "claim-check": "dist/cli.js"
@@ -29,16 +52,6 @@
     "self-check:run": "npm run build && node dist/cli.js . --run",
     "prepack": "npm run build"
   },
-  "keywords": [
-    "documentation",
-    "readme",
-    "markdown",
-    "lint",
-    "docs-as-code",
-    "ci"
-  ],
-  "author": "Nathan Cole (NAY Productions)",
-  "license": "MIT",
   "engines": {
     "node": ">=22.12"
   },
@@ -58,5 +71,9 @@
     "@types/picomatch": "^4.0.3",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
