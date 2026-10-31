@@ -6,3 +6,4 @@ coverage/
 .claim-check-cache.json
 *.sarif
 claim-check-report.*
+.local/
